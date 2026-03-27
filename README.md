@@ -1,106 +1,134 @@
 # mini-metrics
 
-> A small, lightweight Go metrics library and example server that exposes basic metrics in Prometheus text format.
+A small, lightweight Go metrics library that provides simple concurrency-safe Counters and Gauges, a minimal Registry, and an HTTP `/metrics` handler that emits Prometheus-compatible text exposition.
 
 ## Overview
 
-`mini-metrics` provides simple, concurrency-safe Counter and Gauge metrics, a small Registry for registering metrics, an HTTP `/metrics` handler that emits Prometheus-compatible text exposition, and example helpers (HTTP request counter and periodic process memory gauges).
+mini-metrics focuses on clarity and minimalism: easy-to-use metric primitives for small services, learning projects, or cases where integrating a full Prometheus client is unnecessary.
 
-This repository is implemented in Go (module: `github.com/MirRoR4s/metric`) and uses `gopsutil` to collect memory stats.
+The library lives under the module `github.com/MirRoR4s/metric` and uses `gopsutil` for optional process memory gauges.
 
-## Features
+## Usage Example
 
-- Counter: `NewCounter`, `Inc`, `Add`, `Value`
-- Gauge: `NewGauge`, `Set`, `Inc`, `Dec`, `Add`, `Value`
-- Registry: `NewRegistry`, `Register`, `Handler()` to serve `/metrics`
-- Example middleware: `HttpRequestsTotal()` returns a counter and a middleware that increments it per request
-- Memory metrics: `Memory(ctx)` returns memory-related gauges updated periodically
+This minimal runnable example shows the typical usage: create a registry, register metrics, expose `/metrics`, and use an HTTP middleware counter.
 
-## Requirements
+Save as `cmd/main.go` (or integrate into your `main` package):
 
-- Go 1.24 (see `go.mod`)
+```go
+package main
 
-## Quick Start
+import (
+    "context"
+    "log"
+    "net/http"
 
-1. Clone the repository and download modules:
+    metric "github.com/MirRoR4s/metric/pkg"
+)
 
+func main() {
+    ctx := context.Background()
+
+    // Create registry
+    registry := metric.NewRegistry()
+
+    // HTTP requests counter + middleware
+    requests, mw := metric.HttpRequestsTotal()
+
+    // Optional: start process memory gauges
+    memMetrics := metric.Memory(ctx)
+
+    // Register metrics
+    registry.Register(requests, memMetrics)
+
+    // HTTP handlers
+    mux := http.NewServeMux()
+    mux.Handle("/metrics", registry.Handler())
+    mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte("Hello, world!"))
+    })
+
+    // Wrap with middleware so each request increments the counter
+    handler := mw(mux)
+
+    log.Println("listening :8080")
+    if err := http.ListenAndServe(":8080", handler); err != nil {
+        log.Fatal(err)
+    }
+}
 ```
-go mod download
-```
 
-2. Run the example server:
+Run it and query the endpoints:
 
-```
+```bash
 go run ./cmd
-```
-
-The example server listens on `:8080`. Open `http://localhost:8080/hello` and visit `http://localhost:8080/metrics` to see metrics in Prometheus text format.
-
-Example using curl:
-
-```
 curl http://localhost:8080/hello
 curl http://localhost:8080/metrics
 ```
 
-## Package Overview
+## Quick Start
 
-- Package path: `pkg` (imported as `github.com/MirRoR4s/metric/pkg` in the example)
-- Key types and functions:
-  - `Metric` base type with `WritePrometheus(metricType string)`
-  - `Counter` (use `NewCounter(name, help)`)
-  - `Gauge` (use `NewGauge(name, help)`)
-  - `Registry` (use `NewRegistry()`, `Register(...)`, `Handler()`)
-  - `HttpRequestsTotal()` helper returns `(*Counter, middleware func(http.Handler) http.Handler)`
-  - `Memory(ctx)` helper returns memory gauges and updates them periodically using `gopsutil`
+Add the module to your project:
 
-## Prometheus Exposition
-
-The registry's handler sets `Content-Type: text/plain; version=0.0.4` and emits metrics with `# HELP` and `# TYPE` lines followed by metric samples. This is compatible with Prometheus text exposition format used by `prometheus` server scrapers.
-
-## Build & Test
-
-Run all tests:
-
-```
-go test ./...
+```bash
+go get github.com/MirRoR4s/metric@latest
 ```
 
-Build the module/executable:
+Import the package where you need metrics:
 
-```
-go build ./...
-```
-
-Tip: enable the race detector during development:
-
-```
-go test -race ./...
+```go
+import metric "github.com/MirRoR4s/metric/pkg"
 ```
 
-## Notes & Design
+Then follow the usage example to register and expose metrics.
 
-- Metric name validation and simple error variables live under `pkg/errors.go`.
-- The library prioritizes simplicity and teaching value; it is not a drop-in replacement for `prometheus/client_golang` but is useful for small projects and learning.
-- The implementation uses mutexes for thread-safety.
+## Simple API snippets
+
+Create and use a Counter:
+
+```go
+c := metric.NewCounter("example_requests_total", "Total example requests.")
+c.Inc()
+c.Add(5)
+_ = c.Value()
+```
+
+Create and use a Gauge:
+
+```go
+g := metric.NewGauge("current_workers", "Number of active workers.")
+g.Set(3)
+g.Inc()
+g.Dec()
+_ = g.Value()
+```
+
+Register metrics with the registry and serve them:
+
+```go
+r := metric.NewRegistry()
+r.Register(c, g)
+http.Handle("/metrics", r.Handler())
+```
+
+## Prometheus exposition details
+
+- The handler sets `Content-Type: text/plain; version=0.0.4`.
+- Each metric includes `# HELP` and `# TYPE` header lines followed by the metric sample lines.
+
+This format is compatible with Prometheus scrapers.
+
+## Design notes
+
+- Validation: metric names are validated; creating a metric with an invalid name or an empty help string will panic (see `pkg/metic.go`).
+- Concurrency: the implementation uses mutexes for thread-safety; operations are safe for concurrent use.
+- Scope: this library is intentionally minimal — it aims at pedagogy and small services, not full feature parity with `prometheus/client_golang`.
 
 ## Dependencies
 
-- `github.com/shirou/gopsutil/v4` — used for collecting process memory statistics.
+- `github.com/shirou/gopsutil/v4` — used for collecting process memory statistics in the optional memory helper.
 
-## Contributing
+## Contributing & License
 
-Contributions welcome. Please open issues or PRs. Suggested workflow:
+Contributions are welcome. Please open issues or PRs; include tests for non-trivial changes.
 
-1. Fork the repo
-2. Create a feature branch
-3. Run `go test ./...` and ensure checks pass
-4. Open a PR with a description and tests where appropriate
-
-## License
-
-No license file present in this repository. Add a LICENSE file to clarify terms for reuse.
-
----
-
-If you'd like, I can add a LICENSE (MIT recommended), a CONTRIBUTING.md, or expand the README with examples showing how to create and register custom metrics. Would you like any of those added?
+There is no LICENSE file in the repository; consider adding an MIT or Apache-2.0 license for clarity.
