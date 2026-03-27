@@ -17,19 +17,28 @@ var (
 	rEMetricName = regexp.MustCompile("[a-zA-Z_:][a-zA-Z0-9_:]*")
 )
 
+type Type string
+
+const (
+	TypeCounter Type = "counter"
+	TypeGauge   Type = "gauge"
+	TypeUntyped Type = "untyped"
+)
+
 // Metric is the base struct for all metrics, containing common fields like name and help description.
 type Metric struct {
 	name string
 	help string
+	typ  Type
 }
 
-func (m *Metric) WritePrometheus(metricType string) string {
+func (m *Metric) WritePrometheus() string {
 	helpInfo := "# HELP " + m.name + " " + m.help + "\n"
-	typeInfo := "# TYPE " + m.name + " " + metricType + "\n"
+	typeInfo := "# TYPE " + m.name + " " + string(m.typ) + "\n"
 	return helpInfo + typeInfo
 }
 
-func NewMetric(name, help string) *Metric {
+func NewMetric(name, help string, typ Type) *Metric {
 	if !rEMetricName.MatchString(name) {
 		panic(ErrInvalidMetricName)
 	}
@@ -39,7 +48,7 @@ func NewMetric(name, help string) *Metric {
 	if help[len(help)-1] != '.' {
 		help += "."
 	}
-	return &Metric{name: name, help: help}
+	return &Metric{name: name, help: help, typ: typ}
 }
 
 // Counter is a metric that represents a single numerical value that only ever goes up.
@@ -53,7 +62,7 @@ type Counter struct {
 //
 // It panics if the name is invalid or the help description is empty.
 func NewCounter(name, help string) *Counter {
-	return &Counter{Metric: NewMetric(name, help)}
+	return &Counter{Metric: NewMetric(name, help, TypeCounter)}
 }
 
 // Inc increments the counter by 1.
@@ -85,7 +94,7 @@ func (c *Counter) Value() float64 {
 func (c *Counter) WritePrometheus() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.Metric.WritePrometheus("counter") + c.name + " " + fmt.Sprintf("%d", int64(c.Value())) + "\n"
+	return c.Metric.WritePrometheus() + c.name + " " + fmt.Sprintf("%d", int64(c.Value())) + "\n"
 }
 
 // HttpRequestsTotal is a helper function that creates a Counter metric for tracking total HTTP requests and returns it along with a middleware function that increments the counter for each incoming HTTP request.
@@ -127,7 +136,7 @@ func NewGauge(name, help string) *Gauge {
 	if help[len(help)-1] != '.' {
 		help += "."
 	}
-	return &Gauge{Metric: NewMetric(name, help), labels: make(map[string]string)}
+	return &Gauge{Metric: NewMetric(name, help, TypeGauge), labels: make(map[string]string)}
 }
 
 // Set sets the gauge to the given value.
@@ -168,7 +177,7 @@ func (g *Gauge) Value() float64 {
 func (g *Gauge) WritePrometheus() string {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	return g.Metric.WritePrometheus("gauge") + g.name + " " + fmt.Sprintf("%f", g.Value()) + "\n"
+	return g.Metric.WritePrometheus() + g.name + " " + fmt.Sprintf("%f", g.Value()) + "\n"
 }
 
 // memory holds memory-related gauges and updates them periodically.
