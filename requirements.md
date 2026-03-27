@@ -9,9 +9,11 @@
 ## 1. 概述
 
 - 项目名称：mini-metrics  
-- 简介：一个轻量的、并发安全的 Go 指标库，用于在应用程序中记录并导出基础指标（Counter、Gauge、可选 Histogram），并以 Prometheus 文本格式通过 `/metrics` HTTP 端点暴露，方便监控与告警系统抓取。  
+- 简介：一个轻量的、并发安全的 Go 指标库，用于在应用程序中记录并导出基础指标（Counter、Gauge、可选 Histogram），并以 [Prometheus 文本格式](https://prometheus.io/docs/instrumenting/exposition_formats/#prometheus-text-format)通过 `/metrics` HTTP 端点暴露，方便监控与告警系统抓取。  
 - 目标用户：Go 开发者、运维人员、学习监控系统的初学者。  
 - 项目目标（高层）：提供简单、易用、可扩展的指标 API，方便在任意 Go 应用中快速埋点并被 Prometheus 等监控系统抓取。
+
+> 其实就是实现一个Prometheus的客户端库，具体实现思路可以参看[官方文档](https://prometheus.io/docs/instrumenting/writing_clientlibs/)
 
 > 关于metrics和Prometheus，可以参看这篇[知乎](https://zhuanlan.zhihu.com/p/512696957)文章。
 
