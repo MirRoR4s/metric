@@ -6,15 +6,22 @@ import (
 	"log"
 	"net/http"
 
-	metric "github.com/MirRoR4s/metric/pkg"
+	"github.com/MirRoR4s/metric/pkg/collector"
+	"github.com/MirRoR4s/metric/pkg/metric"
 )
 
 func main() {
 	ctx := context.Background()
 	registry := metric.NewRegistry()
-	counter, middleware := metric.HttpRequestsTotal()
-	memoryMetric := metric.Memory(ctx)
-	registry.Register(counter, memoryMetric)
+	counter, middleware, err := collector.NewHttpRequestsTotal()
+	if err != nil {
+		log.Fatalf("Error creating HTTP requests total counter: %v", err)
+	}
+	processCollector, err := collector.NewProcess(ctx) // Example: 1GB max virtual memory
+	if err != nil {
+		log.Fatalf("Error creating memory metrics: %v", err)
+	}
+	registry.Register(counter, processCollector)
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", registry.Handler())
 	mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {

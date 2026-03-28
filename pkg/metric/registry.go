@@ -1,6 +1,9 @@
 package metric
 
-import "net/http"
+import (
+	"io"
+	"net/http"
+)
 
 // PrometheusFormatter is an interface that defines a method for writing metrics in Prometheus text format.
 type PrometheusFormatter interface {
@@ -27,7 +30,7 @@ func (r *Registry) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		for _, m := range r.metircs {
-			w.Write([]byte(m.WritePrometheus()))
+			io.WriteString(w, m.WritePrometheus() + "\n")
 		}
 	})
 }

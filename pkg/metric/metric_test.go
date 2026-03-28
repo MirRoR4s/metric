@@ -1,39 +1,34 @@
 package metric
 
 import (
-	"context"
-	"net/http"
-	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCounter(t *testing.T) {
-	counter := NewCounter("test_counter", "A test counter.")
-	assert.Equal(t, "test_counter", counter.name, "expected counter name to be 'test_counter'")
-	assert.Equal(t, "A test counter.", counter.help, "expected counter help to be 'A test counter.'")
-	assert.Equal(t, TypeCounter, counter.typ, "expected counter type to be 'counter'")
+	counter, err := NewCounter("test_counter", "A test counter.")
+	assert.NoError(t, err, "expected no error when creating a new counter")
+	assert.Equal(t, "test_counter", counter.Name, "expected counter name to be 'test_counter'")
+	assert.Equal(t, "A test counter.", counter.Help, "expected counter help to be 'A test counter.'")
 }
 
 func TestNewCounterEmptyName(t *testing.T) {
-	// Testing that creating a counter with an empty name will panic
-	assert.Panics(t, func() {
-		NewCounter("", "A counter with an empty name.")
-	}, "expected panic when creating a counter with an empty name")
+	// Testing that creating a counter with an empty name will error
+	_, err := NewCounter("", "A test counter with empty name.")
+	assert.Error(t, err, "expected error when creating a counter with an empty name")
 }
 
 func TestNewCounterEmptyHelp(t *testing.T) {
-	// Testing that creating a counter with an empty help description will panic
-	assert.Panics(t, func() {
-		NewCounter("test_counter_empty_help", "")
-	}, "expected panic when creating a counter with an empty help description")
+	// Testing that creating a counter with an empty help description will error
+	_, err := NewCounter("test_counter_empty_help", "")
+	assert.Error(t, err, "expected error when creating a counter with an empty help description")
 }
 
 func TestCounterInc(t *testing.T) {
-	counter := NewCounter("test_counter", "A test counter.")
+	counter, err := NewCounter("test_counter", "A test counter.")
+	assert.NoError(t, err, "expected no error when creating a new counter")
 	counter.Inc()
 	assert.Equal(t, 1.0, counter.Value(), "expected counter value 1 after one increment")
 
@@ -51,30 +46,31 @@ func TestCounterInc(t *testing.T) {
 }
 
 func TestCounterAdd(t *testing.T) {
-	counter := NewCounter("test_counter_add", "A test counter for Add method.")
-	counter.Add(5)
+	counter, err := NewCounter("test_counter_add", "A test counter for Add method.")
+	assert.NoError(t, err, "expected no error when creating a new counter")
+	assert.NoError(t, counter.Add(5))
 	assert.Equal(t, 5.0, counter.Value(), "expected counter value 5 after adding 5")
 
 	// Testing thread safety by adding to the counter from multiple goroutines.
 	var wg sync.WaitGroup
-	for range 100 {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			counter.Add(1)
+			assert.NoError(t, counter.Add(1))
 		}()
 	}
 	wg.Wait()
 	assert.Equal(t, 105.0, counter.Value(), "expected counter value 105 after 100 additions")
 
-	// Testing that adding a negative value will panic
-	assert.Panics(t, func() {
-		counter.Add(-1)
-	}, "expected panic when adding a negative value to the counter")
+	// Testing that adding a negative value will return an error
+	err = counter.Add(-1)
+	assert.Error(t, err, "expected error when adding a negative value to the counter")
 }
 
 func TestCounterValue(t *testing.T) {
-	counter := NewCounter("test_counter_value", "A test counter for Value method.")
+	counter, err := NewCounter("test_counter_value", "A test counter for Value method.")
+	assert.NoError(t, err, "expected no error when creating a new counter")
 	assert.Equal(t, 0.0, counter.Value(), "expected initial counter value to be 0")
 
 	counter.Inc()
@@ -82,26 +78,29 @@ func TestCounterValue(t *testing.T) {
 }
 
 func TestCounterWritePrometheus(t *testing.T) {
-	counter := NewCounter("test_counter_prometheus", "A test counter for Prometheus output.")
+	counter, err := NewCounter("test_counter_prometheus", "A test counter for Prometheus output.")
+	assert.NoError(t, err, "expected no error when creating a new counter")
 	expectedOutput := "# HELP test_counter_prometheus A test counter for Prometheus output.\n# TYPE test_counter_prometheus counter\ntest_counter_prometheus 0\n"
 	assert.Equal(t, expectedOutput, counter.WritePrometheus(), "expected Prometheus output to match the expected format")
 }
 
 func TestNewGauge(t *testing.T) {
-	gauge := NewGauge("test_gauge", "A test gauge.")
-	assert.Equal(t, "test_gauge", gauge.name, "expected gauge name to be 'test_gauge'")
-	assert.Equal(t, "A test gauge.", gauge.help, "expected gauge help to be 'A test gauge.'")
-	assert.Equal(t, TypeGauge, gauge.typ, "expected gauge type to be 'gauge'")
+	gauge, err := NewGauge("test_gauge", "A test gauge.")
+	assert.NoError(t, err, "expected no error when creating a new gauge")
+	assert.Equal(t, "test_gauge", gauge.Name, "expected gauge name to be 'test_gauge'")
+	assert.Equal(t, "A test gauge.", gauge.Help, "expected gauge help to be 'A test gauge.'")
 }
 
 func TestGaugeSet(t *testing.T) {
-	gauge := NewGauge("test_gauge_set", "A test gauge for Set method.")
+	gauge, err := NewGauge("test_gauge_set", "A test gauge for Set method.")
+	assert.NoError(t, err, "expected no error when creating a new gauge")
 	gauge.Set(3.14)
 	assert.Equal(t, 3.14, gauge.Value(), "expected gauge value to be 3.14 after setting it")
 }
 
 func TestGaugeInc(t *testing.T) {
-	gauge := NewGauge("test_gauge_inc", "A test gauge for Inc method.")
+	gauge, err := NewGauge("test_gauge_inc", "A test gauge for Inc method.")
+	assert.NoError(t, err, "expected no error when creating a new gauge")
 	gauge.Inc()
 	assert.Equal(t, 1.0, gauge.Value(), "expected gauge value to be 1 after one increment")
 
@@ -120,7 +119,8 @@ func TestGaugeInc(t *testing.T) {
 }
 
 func TestGaugeDec(t *testing.T) {
-	gauge := NewGauge("test_gauge_dec", "A test gauge for Dec method.")
+	gauge, err := NewGauge("test_gauge_dec", "A test gauge for Dec method.")
+	assert.NoError(t, err, "expected no error when creating a new gauge")
 	gauge.Dec()
 	assert.Equal(t, -1.0, gauge.Value(), "expected gauge value to be -1 after one decrement")
 
@@ -138,7 +138,8 @@ func TestGaugeDec(t *testing.T) {
 }
 
 func TestGaugeAdd(t *testing.T) {
-	gauge := NewGauge("test_gauge_add", "A test gauge for Add method.")
+	gauge, err := NewGauge("test_gauge_add", "A test gauge for Add method.")
+	assert.NoError(t, err, "expected no error when creating a new gauge")
 	gauge.Add(2.5)
 	assert.Equal(t, 2.5, gauge.Value(), "expected gauge value to be 2.5 after adding 2.5")
 
@@ -156,34 +157,8 @@ func TestGaugeAdd(t *testing.T) {
 }
 
 func TestGaugeWritePrometheus(t *testing.T) {
-	gauge := NewGauge("test_gauge_prometheus", "A test gauge for Prometheus output.")
+	gauge, err := NewGauge("test_gauge_prometheus", "A test gauge for Prometheus output.")
+	assert.NoError(t, err, "expected no error when creating a new gauge")
 	expectedOutput := "# HELP test_gauge_prometheus A test gauge for Prometheus output.\n# TYPE test_gauge_prometheus gauge\ntest_gauge_prometheus 0.000000\n"
 	assert.Equal(t, expectedOutput, gauge.WritePrometheus(), "expected Prometheus output to match the expected format")
-}
-
-func TestHttpRequestsTotal(t *testing.T) {
-	counter, middleware := HttpRequestsTotal()
-	// Simulate an HTTP request by calling the middleware function.
-	mux := middleware(&http.ServeMux{})
-	// Using httptest package to create a test HTTP request and response recorder.
-	req := httptest.NewRequest("GET", "http://example.com/test", nil)
-	w := httptest.NewRecorder()
-	mux.ServeHTTP(w, req)
-	assert.Equal(t, 1.0, counter.Value(), "expected counter value to be 1 after one HTTP request")
-}
-
-func TestMemory(t *testing.T) {
-	memory := Memory(context.Background())
-	assert.NotNil(t, memory, "expected memory to be initialized")
-
-}
-
-func TestMemoryUpdate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.TODO())
-	memory := Memory(ctx)
-	// Allow some time for the memory metrics to be updated.
-	time.Sleep(1 * time.Second)
-	assert.Greater(t, memory.VirtualMemoryBytes.Value(), 0.0, "expected VirtualMemoryBytes to be greater than 0")
-	assert.Greater(t, memory.VirtualMemoryMaxBytes.Value(), 0.0, "expected VirtualMemoryMaxBytes to be greater than 0")
-	cancel() // Stop the memory update goroutine
 }
