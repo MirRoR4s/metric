@@ -30,7 +30,7 @@ func (r *Registry) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		for _, m := range r.metircs {
-			io.WriteString(w, m.WritePrometheus() + "\n")
+			io.WriteString(w, m.WritePrometheus()+"\n")
 		}
 	})
 }
