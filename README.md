@@ -66,3 +66,7 @@ curl http://localhost:8080/metrics
 ```
 
 ![alt text](./static/README/image.png)
+
+## License
+
+Code is distributed under MIT license, feel free to use it in your proprietary projects as well.
