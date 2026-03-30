@@ -69,4 +69,4 @@ curl http://localhost:8080/metrics
 
 ## License
 
-Code is distributed under MIT license, feel free to use it in your proprietary projects as well.
+Code is distributed under Apache License 2.0, feel free to use it in your proprietary projects as well.
