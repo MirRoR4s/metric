@@ -60,7 +60,7 @@ func main() {
 Run it and query the endpoints:
 
 ```bash
-go run example/main.go
+go run examples/main.go
 curl http://localhost:8080/hello
 curl http://localhost:8080/metrics
 ```
