@@ -21,7 +21,7 @@ jobs:
       with:
         go-version: '1.24'
     
-    - name: fmt
+    - name: Fmt
       run: go fmt -x ./...
     
     - name: Build
