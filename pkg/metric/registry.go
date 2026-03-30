@@ -12,24 +12,24 @@ type PrometheusFormatter interface {
 }
 
 type Registry struct {
-	metircs []PrometheusFormatter
+	metrics []PrometheusFormatter
 }
 
 func NewRegistry() *Registry {
 	return &Registry{
-		metircs: make([]PrometheusFormatter, 0),
+		metrics: make([]PrometheusFormatter, 0),
 	}
 }
 
 func (r *Registry) Register(metrics ...PrometheusFormatter) {
-	r.metircs = append(r.metircs, metrics...)
+	r.metrics = append(r.metrics, metrics...)
 }
 
 // Handler returns an HTTP handler that serves the metrics in Prometheus based-text format.
 func (r *Registry) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		for _, m := range r.metircs {
+		for _, m := range r.metrics {
 			io.WriteString(w, m.WritePrometheus()+"\n")
 		}
 	})

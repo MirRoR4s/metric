@@ -55,7 +55,7 @@ func (c *Counter) Value() float64 {
 func (c *Counter) WritePrometheus() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.Metric.WritePrometheus() + c.Name + " " + fmt.Sprintf("%d", int64(c.Value())) + "\n"
+	return c.Metric.WritePrometheus() + c.Name + " " + fmt.Sprintf("%f", c.Value()) + "\n"
 }
 
 // Gauge is a metric that represents a single numerical value that can arbitrarily go up and down.

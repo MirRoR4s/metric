@@ -80,7 +80,7 @@ func TestCounterValue(t *testing.T) {
 func TestCounterWritePrometheus(t *testing.T) {
 	counter, err := NewCounter("test_counter_prometheus", "A test counter for Prometheus output.")
 	assert.NoError(t, err, "expected no error when creating a new counter")
-	expectedOutput := "# HELP test_counter_prometheus A test counter for Prometheus output.\n# TYPE test_counter_prometheus counter\ntest_counter_prometheus 0\n"
+	expectedOutput := "# HELP test_counter_prometheus A test counter for Prometheus output.\n# TYPE test_counter_prometheus counter\ntest_counter_prometheus 0.000000\n"
 	assert.Equal(t, expectedOutput, counter.WritePrometheus(), "expected Prometheus output to match the expected format")
 }
 
